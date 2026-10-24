@@ -71,13 +71,43 @@ extension Downloads {
                 ])
             }
             logger.info("Legacy download HTTP 403/empty; using bundled ipatool 2.7")
+            let key = package.id
+            let token = UUID()
+            ipatoolRequestTokens[key] = token
+            let expectedBytes = package.software.fileSizeBytes.flatMap(Int64.init(_:))
+            ipatoolProgress[key] = .init(
+                appName: package.software.name, stage: .checkingAccount,
+                expectedBytes: expectedBytes
+            )
+            defer {
+                if ipatoolRequestTokens[key] == token {
+                    ipatoolRequestTokens.removeValue(forKey: key)
+                    ipatoolProgress.removeValue(forKey: key)
+                }
+            }
             let ipa = try await MacIPAToolFallback.download(
                 appID: package.software.id,
                 version: package.externalVersionID,
-                expectedEmail: account.account.email
+                expectedEmail: account.account.email,
+                appName: package.software.name,
+                expectedBytes: expectedBytes,
+                onProgress: { update in
+                    Task { @MainActor in
+                        guard self.ipatoolRequestTokens[key] == token else { return }
+                        self.ipatoolProgress[key] = update
+                    }
+                }
             )
             defer { try? FileManager.default.removeItem(at: ipa.deletingLastPathComponent()) }
+            if var update = ipatoolProgress[key] {
+                update.stage = .verifying
+                ipatoolProgress[key] = update
+            }
             try StorePackageValidator.validate(at: ipa, package: package)
+            if var update = ipatoolProgress[key] {
+                update.stage = .importing
+                ipatoolProgress[key] = update
+            }
             let request = try PackageManifest(account: account, package: package, localIPA: ipa)
             _ = add(request: request)
             saveManifests()
