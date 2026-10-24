@@ -66,7 +66,9 @@ extension Downloads {
         } catch {
             guard MacIPAToolFallback.shouldRetry(error) else { throw error }
             guard let account = AppStore.this.accounts.first(where: { $0.id == accountID }) else {
-                throw AuthenticationError.accountNotFound
+                throw NSError(domain: "Asspp.Download", code: 404, userInfo: [
+                    NSLocalizedDescriptionKey: "The selected Apple ID is no longer available in Asspp. Choose a saved account and try again."
+                ])
             }
             logger.info("Legacy download HTTP 403/empty; using bundled ipatool 2.7")
             let ipa = try await MacIPAToolFallback.download(
