@@ -20,8 +20,8 @@ enum MacIPAToolFallback {
     static func shouldRetry(_ error: Error) -> Bool {
         guard let issue = error as? StoreDownloadError else { return false }
         switch issue {
-        case .response(403), .emptyResponse(403), .empty: true
-        default: false
+        case .response(403), .emptyResponse(403), .empty: return true
+        default: return false
         }
     }
 
