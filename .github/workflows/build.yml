@@ -110,5 +110,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Asspp-macOS-keychain-ipatool-2.7
+          name: Asspp-macOS-ipatool-2.7-progress
           path: Asspp.zip
