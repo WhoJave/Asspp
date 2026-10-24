@@ -60,6 +60,33 @@ extension Downloads {
 
 extension Downloads {
     func startDownload(for package: AppStore.AppPackage, accountID: String) async throws {
+        #if os(macOS)
+        do {
+            try await startLegacyDownload(for: package, accountID: accountID)
+        } catch {
+            guard MacIPAToolFallback.shouldRetry(error) else { throw error }
+            guard let account = AppStore.this.accounts.first(where: { $0.id == accountID }) else {
+                throw AuthenticationError.accountNotFound
+            }
+            logger.info("Legacy download HTTP 403/empty; using bundled ipatool 2.7")
+            let ipa = try await MacIPAToolFallback.download(
+                appID: package.software.id,
+                version: package.externalVersionID,
+                expectedEmail: account.account.email
+            )
+            defer { try? FileManager.default.removeItem(at: ipa.deletingLastPathComponent()) }
+            try StorePackageValidator.validate(at: ipa, package: package)
+            let request = try PackageManifest(account: account, package: package, localIPA: ipa)
+            _ = add(request: request)
+            saveManifests()
+            logger.info("ipatool produced a verified IPA; added to Downloads")
+        }
+        #else
+        try await startLegacyDownload(for: package, accountID: accountID)
+        #endif
+    }
+
+    private func startLegacyDownload(for package: AppStore.AppPackage, accountID: String) async throws {
         try await AppStore.this.withAccount(id: accountID) { account in
             let downloadOutput = try await StoreDownloadService.download(account: &account.account, package: package)
             let request = try Downloads.this.add(request: .init(

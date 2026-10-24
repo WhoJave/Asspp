@@ -54,6 +54,31 @@ echo "[+] build product path: $BUILD_PRODUCT_PATH"
 # Ad-hoc signing requires no paid Apple Developer account. Sign embedded
 # libraries/frameworks and the outer app so macOS has a stable signed bundle
 # and can use the regular local login Keychain. Do not add a team Keychain group.
+# Bundle SHA256-pinned official ipatool 2.7.0 macOS ARM64 + Intel binaries.
+echo "[+] downloading verified ipatool 2.7.0..."
+IPATOOL_VERSION=2.7.0
+IPATOOL_TMP=$(mktemp -d)
+trap 'rm -rf "$IPATOOL_TMP"' EXIT
+for ARCH in arm64 amd64; do
+    ARCHIVE="$IPATOOL_TMP/ipatool-$ARCH.tar.gz"
+    curl -fL --retry 3 "https://github.com/majd/ipatool/releases/download/v${IPATOOL_VERSION}/ipatool-${IPATOOL_VERSION}-macos-${ARCH}.tar.gz" -o "$ARCHIVE"
+    case "$ARCH" in
+        arm64) DIGEST=5ae100d4520cf4b3f4374239e5925a9ad9a8dc02abc16bae27479e7ae99aca33 ;;
+        amd64) DIGEST=05f48994d8b3cfefe7ea1172a0ac0b28715888e9df0af38cf3e490d2ed592263 ;;
+    esac
+    echo "$DIGEST  $ARCHIVE" | shasum -a 256 -c -
+    mkdir -p "$IPATOOL_TMP/$ARCH"
+    tar -xzf "$ARCHIVE" -C "$IPATOOL_TMP/$ARCH"
+done
+IPATOOL_HELPER="$BUILD_PRODUCT_PATH/Contents/Resources/ipatool"
+lipo -create \
+    "$IPATOOL_TMP/arm64/bin/ipatool-${IPATOOL_VERSION}-macos-arm64" \
+    "$IPATOOL_TMP/amd64/bin/ipatool-${IPATOOL_VERSION}-macos-amd64" \
+    -output "$IPATOOL_HELPER"
+chmod 755 "$IPATOOL_HELPER"
+lipo -info "$IPATOOL_HELPER"
+codesign --force --sign - --timestamp=none "$IPATOOL_HELPER"
+
 echo "[+] ad-hoc signing macOS app..."
 codesign --force --deep --sign - --timestamp=none "$BUILD_PRODUCT_PATH"
 codesign --verify --deep --strict --verbose=2 "$BUILD_PRODUCT_PATH"

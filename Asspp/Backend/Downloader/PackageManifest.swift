@@ -72,6 +72,25 @@ class PackageManifest: Identifiable, Codable, Hashable, Equatable {
         creation = .init()
     }
 
+    #if os(macOS)
+    /// Import an already signed IPA from ipatool, without re-injecting SINF.
+    init(account: AppStore.UserAccount, package: AppStore.AppPackage, localIPA: URL) throws {
+        self.account = account
+        self.package = package
+        url = localIPA
+        signatures = []
+        iTunesMetadata = Data()
+        creation = Date()
+        let target = targetLocation
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let staged = target.deletingLastPathComponent().appendingPathComponent("." + UUID().uuidString + ".ipa")
+        defer { try? FileManager.default.removeItem(at: staged) }
+        try FileManager.default.copyItem(at: localIPA, to: staged)
+        try FileManager.default.moveItem(at: staged, to: target)
+        state.complete()
+    }
+    #endif
+
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
