@@ -88,6 +88,11 @@ struct AddDownloadView: View {
                 .disabled(bundleID.isEmpty)
                 .disabled(account == nil)
             } footer: {
+                #if os(macOS)
+                if let progress = dvm.ipatoolProgress[bundleID] {
+                    MacIPAToolProgressView(progress: progress)
+                }
+                #endif
                 if hint.isEmpty {
                     Text("The package can be installed later from the Downloads page.")
                 } else {
