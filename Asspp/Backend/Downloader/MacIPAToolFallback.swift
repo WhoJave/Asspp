@@ -17,7 +17,7 @@ enum MacIPAToolFallback {
         }
     }
 
-    enum Stage: Sendable {
+    enum Stage: Sendable, Equatable {
         case checkingAccount, connecting, transferring, processing, verifying, importing
         var title: String {
             switch self {
