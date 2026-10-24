@@ -244,6 +244,11 @@ struct ProductView: View {
         } header: {
             Text("Download")
         } footer: {
+            #if os(macOS)
+            if let progress = dvm.ipatoolProgress[archive.package.id] {
+                MacIPAToolProgressView(progress: progress)
+            }
+            #endif
             if let hint {
                 Text(hint.message)
                     .foregroundStyle(hint.color ?? .primary)
