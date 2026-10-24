@@ -27,6 +27,15 @@ class Downloads {
     @ObservationIgnored
     private var registeredCallbacks: Set<UUID> = []
 
+    #if os(macOS)
+    /// ipatool produces a complete IPA before a persistent manifest exists.
+    /// Expose its short-lived progress in Search and Downloads.
+    var ipatoolProgress: [String: MacIPAToolFallback.ProgressUpdate] = [:]
+
+    @ObservationIgnored
+    var ipatoolRequestTokens: [String: UUID] = [:]
+    #endif
+
     private static let speedFormatter: ByteCountFormatter = {
         let fmt = ByteCountFormatter()
         fmt.allowedUnits = .useAll
