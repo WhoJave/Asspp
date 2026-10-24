@@ -19,6 +19,40 @@ struct DownloadView: View {
 
     private var content: some View {
         Group {
+            #if os(macOS)
+            if !vm.ipatoolProgress.isEmpty {
+                Form {
+                    ForEach(vm.ipatoolProgress.keys.sorted(), id: \.self) { bundleID in
+                        if let progress = vm.ipatoolProgress[bundleID] {
+                            Section {
+                                MacIPAToolProgressView(progress: progress)
+                            } header: {
+                                Text(progress.appName)
+                            }
+                        }
+                    }
+                    packageList
+                }
+                .formStyle(.grouped)
+            } else {
+                standardContent
+            }
+            #else
+            standardContent
+            #endif
+        }
+        .navigationDestination(for: PackageManifest.self) { manifest in
+            PackageView(pkg: manifest)
+        }
+        .toolbar {
+            NavigationLink(destination: AddDownloadView()) {
+                Image(systemName: "plus")
+            }
+        }
+    }
+
+    private var standardContent: some View {
+        Group {
             if vm.manifests.isEmpty {
                 ContentUnavailableView(
                     label: {
@@ -41,14 +75,6 @@ struct DownloadView: View {
             }
         }
         .formStyle(.grouped)
-        .navigationDestination(for: PackageManifest.self) { manifest in
-            PackageView(pkg: manifest)
-        }
-        .toolbar {
-            NavigationLink(destination: AddDownloadView()) {
-                Image(systemName: "plus")
-            }
-        }
     }
 
     private var packageList: some View {
