@@ -48,7 +48,13 @@ class KeychainStorage: PersistProvider {
     private let keychain: Keychain
 
     init(service: String) {
+        #if os(macOS)
+        // The CI macOS release has no Apple developer team; use the local login Keychain.
+        // Synchronizable items require a Data Protection Keychain entitlement.
+        keychain = Keychain(service: service).synchronizable(false)
+        #else
         keychain = Keychain(service: service).synchronizable(true)
+        #endif
     }
 
     func data(forKey key: String) throws -> Data? {

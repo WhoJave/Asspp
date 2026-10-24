@@ -51,6 +51,14 @@ fi
 
 echo "[+] build product path: $BUILD_PRODUCT_PATH"
 
+# Ad-hoc signing requires no paid Apple Developer account. Sign embedded
+# libraries/frameworks and the outer app so macOS has a stable signed bundle
+# and can use the regular local login Keychain. Do not add a team Keychain group.
+echo "[+] ad-hoc signing macOS app..."
+codesign --force --deep --sign - --timestamp=none "$BUILD_PRODUCT_PATH"
+codesign --verify --deep --strict --verbose=2 "$BUILD_PRODUCT_PATH"
+codesign --display --verbose=2 "$BUILD_PRODUCT_PATH" 2>&1 | grep -E 'Signature=|TeamIdentifier=' || true
+
 echo "[+] packaging..."
 pushd "$SRCROOT/build/DerivedDataApp/Build/Products/Release"
 zip -r "$TARGET_IPA" "$BUILD_PRODUCT"

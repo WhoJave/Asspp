@@ -2,12 +2,13 @@ name: Build App
 
 on:
   push:
-    branches: [main]
+    branches: [main, macos-local-keychain]
   pull_request:
     branches: [main]
 
 jobs:
   build-ios:
+    if: github.ref_name != 'macos-local-keychain'
     runs-on: macos-26
 
     steps:
@@ -109,5 +110,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Asspp.zip
+          name: Asspp-macOS-local-keychain
           path: Asspp.zip
